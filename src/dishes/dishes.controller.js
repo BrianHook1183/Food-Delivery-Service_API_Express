@@ -7,3 +7,4 @@ const dishes = require(path.resolve("src/data/dishes-data"));
 const nextId = require("../utils/nextId");
 
 // TODO: Implement the /dishes handlers needed to make the tests pass
+//  add handlers and middleware functions to create, read, update, and list dishes. Note that dishes cannot be deleted.
