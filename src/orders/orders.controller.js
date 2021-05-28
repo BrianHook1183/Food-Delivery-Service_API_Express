@@ -16,7 +16,7 @@ function destroy(req, res) {
   res.json("delete");
 }
 function list(req, res) {
-  res.json("list");
+  res.json({data: orders});
 }
 function create(req, res) {
   res.json("create");
