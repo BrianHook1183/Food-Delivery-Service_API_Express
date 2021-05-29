@@ -6,9 +6,31 @@ const dishes = require(path.resolve("src/data/dishes-data"));
 // Use this function to assign ID's when necessary
 const nextId = require("../utils/nextId");
 
+function dishIdExists(req, res, next) {
+  const { dishId } = req.params;
+  const foundDish = dishes.find((dish) => dish.id == Number(dishId));
+  if (foundDish === undefined) {
+    return next({
+      status: 404,
+      message: `dish id not found: ${dishId}`,
+    });
+  }
+  res.locals.dish = foundDish;
+  next();
+}
+
 function bodyIsValid(req, res, next) {
   const dish = req.body.data;
   const { name, description, price, image_url } = dish;
+
+  // if dish, message = errorOptions[dish];
+  // idea source: https://www.freecodecamp.org/news/javascript-objects-square-brackets-and-algorithms-e9a2916dc158/
+  /*   const errorOptions = {
+    dish: "Dish is empty",
+    name: "Dish must include a name",
+    description: "Dish must include a description",
+  }; */
+
   if (!dish) {
     return next({
       status: 400,
@@ -62,7 +84,7 @@ function create(req, res) {
 }
 
 function read(req, res) {
-  res.json("read");
+  res.json({ data: res.locals.dish });
 }
 
 function update(req, res) {
@@ -72,6 +94,6 @@ function update(req, res) {
 module.exports = {
   list,
   create: [bodyIsValid, create],
-  read,
+  read: [dishIdExists, read],
   update: [bodyIsValid, update],
 };
