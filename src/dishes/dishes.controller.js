@@ -8,20 +8,28 @@ const nextId = require("../utils/nextId");
 
 function dishIdExists(req, res, next) {
   const { dishId } = req.params;
-  const foundDish = dishes.find((dish) => dish.id == Number(dishId));
+  const foundDish = dishes.find((dish) => dish.id == dishId);
   if (foundDish === undefined) {
     return next({
       status: 404,
-      message: `dish id not found: ${dishId}`,
+      message: `Dish does not exist: ${dishId}.`,
     });
   }
-  res.locals.dish = foundDish;
+  res.locals.foundDish = foundDish;
   next();
 }
 
 function bodyIsValid(req, res, next) {
+  const { dishId } = req.params;
   const dish = req.body.data;
   const { name, description, price, image_url } = dish;
+
+  if (dish.id && dishId !== dish.id) {
+    return next({
+      status: 400,
+      message: `Dish id does not match route id. Dish: ${dish.id}, Route: ${dishId}`,
+    });
+  }
 
   // if dish, message = errorOptions[dish];
   // idea source: https://www.freecodecamp.org/news/javascript-objects-square-brackets-and-algorithms-e9a2916dc158/
@@ -67,8 +75,15 @@ function bodyIsValid(req, res, next) {
       message: "Dish must include a image_url",
     });
   }
+  // Adds new id for creating dish but doesn't if updating and id not in body
+  let handleId = undefined;
+  if (dish.id === undefined && dishId) {
+    handleId = { id: dishId };
+  } else {
+    handleId = dishId ? { id: dishId } : { id: nextId() };
+  }
 
-  const newDish = { ...dish, id: nextId() };
+  const newDish = { ...dish, ...handleId };
   res.locals.newDish = newDish;
   next();
 }
@@ -84,16 +99,20 @@ function create(req, res) {
 }
 
 function read(req, res) {
-  res.json({ data: res.locals.dish });
+  res.json({ data: res.locals.foundDish });
 }
 
 function update(req, res) {
-  res.json(res.locals.newDish);
+  const { foundDish } = res.locals.foundDish;
+  const { newDish } = res.locals;
+  const updatedEntry = { ...foundDish, ...newDish };
+
+  res.json({ data: updatedEntry });
 }
 
 module.exports = {
   list,
   create: [bodyIsValid, create],
   read: [dishIdExists, read],
-  update: [bodyIsValid, update],
+  update: [dishIdExists, bodyIsValid, update],
 };
