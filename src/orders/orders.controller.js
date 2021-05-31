@@ -140,6 +140,13 @@ function read(req, res) {
 function update(req, res) {
   const { order } = res.locals.foundOrder;
   const { newOrder } = res.locals;
+  // redundant check to make sure  that the id property of the stored data cannot be overwritten.
+  if (newOrder.id !== order.id) {
+    return next({
+      status: 400,
+      message: `You can not change existing order id ${order.id} to ${newOrder.id}`,
+    });
+  }
   const updatedEntry = { ...order, ...newOrder };
 
   res.json({ data: updatedEntry });

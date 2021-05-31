@@ -31,14 +31,6 @@ function bodyIsValid(req, res, next) {
     });
   }
 
-  // if dish, message = errorOptions[dish];
-  // idea source: https://www.freecodecamp.org/news/javascript-objects-square-brackets-and-algorithms-e9a2916dc158/
-  /*   const errorOptions = {
-    dish: "Dish is empty",
-    name: "Dish must include a name",
-    description: "Dish must include a description",
-  }; */
-
   if (!dish) {
     return next({
       status: 400,
@@ -103,8 +95,15 @@ function read(req, res) {
 }
 
 function update(req, res) {
-  const { foundDish } = res.locals.foundDish;
+  const { foundDish } = res.locals;
   const { newDish } = res.locals;
+  // redundant check to make sure  that the id property of the stored data cannot be overwritten.
+  if (newDish.id !== foundDish.id) {
+    return next({
+      status: 400,
+      message: `You can not change existing dish id ${foundDish.id} to ${newDish.id}`,
+    });
+  }
   const updatedEntry = { ...foundDish, ...newDish };
 
   res.json({ data: updatedEntry });
