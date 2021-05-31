@@ -19,29 +19,24 @@ function orderIdExists(req, res, next) {
       message: `Order does not exist: ${orderId}.`,
     });
   }
+}
 
+function idMatchesId(req, res, next) {
+  const { orderId } = req.params;
   const order = req.body.data;
-  if (order) {
-    if (order.id && orderId !== order.id) {
-      return next({
-        status: 400,
-        message: `Order id does not match route id. Order: ${order.id}, Route: ${orderId}`,
-      });
-    }
+  if (order.id && orderId !== order.id) {
+    return next({
+      status: 400,
+      message: `Order id does not match route id. Order: ${order.id}, Route: ${orderId}`,
+    });
   }
+  next();
 }
 
 function bodyIsValid(req, res, next) {
   const { orderId } = req.params;
   const order = req.body.data;
   const { deliverTo, mobileNumber, status, dishes } = order;
-
-  // if (order.id && orderId !== order.id) {
-  //   return next({
-  //     status: 400,
-  //     message: `Order id does not match route id. Order: ${order.id}, Route: ${orderId}`,
-  //   });
-  // }
 
   if (!deliverTo) {
     return next({
@@ -55,6 +50,30 @@ function bodyIsValid(req, res, next) {
       message: "Order must include a mobileNumber",
     });
   }
+
+  // if updating
+  if (orderId) {
+    const validStatus = {
+      pending: "x",
+      preparing: "x",
+      "out-for-delivery": "x",
+      delivered: "x",
+    };
+    if (!validStatus[status]) {
+      return next({
+        status: 400,
+        message:
+          "Order must have a status of pending, preparing, out-for-delivery, delivered",
+      });
+    }
+    if (res.locals.foundOrder.order.status === "delivered") {
+      return next({
+        status: 400,
+        message: "A delivered order cannot be changed",
+      });
+    }
+  }
+
   if (!dishes) {
     return next({
       status: 400,
@@ -89,7 +108,6 @@ function bodyIsValid(req, res, next) {
   } else {
     handleId = orderId ? { id: orderId } : { id: nextId() };
   }
-  //TODO need to adjust this for having dishes array embedded - and says "Note: Each dish in the Order's dishes property is a complete copy of the dish, rather than a reference to the dish by id. This is so the order does not change retroactively if the dish data is updated some time after the order is created."
   const newOrder = { ...order, ...handleId };
   res.locals.newOrder = newOrder;
   next();
@@ -99,7 +117,11 @@ function read(req, res) {
   res.json({ data: res.locals.foundOrder.order });
 }
 function update(req, res) {
-  res.json("update");
+  const { order } = res.locals.foundOrder;
+  const { newOrder } = res.locals;
+  const updatedEntry = { ...order, ...newOrder };
+
+  res.json({ data: updatedEntry });
 }
 function destroy(req, res) {
   res.json("delete");
@@ -115,7 +137,7 @@ function create(req, res) {
 
 module.exports = {
   read: [orderIdExists, read],
-  update: [orderIdExists, bodyIsValid, update],
+  update: [orderIdExists, idMatchesId, bodyIsValid, update],
   destroy,
   list,
   create: [bodyIsValid, create],
